@@ -1,0 +1,1132 @@
+-- Zevixx GUI FINAL FULL MERGED SCRIPT WITH SMOOTH GLIDE AND BLINK FLY (UPDATED VERSION)
+local player = game:GetService("Players").LocalPlayer
+local runService = game:GetService("RunService")
+local workspace = game:GetService("Workspace")
+local tweenService = game:GetService("TweenService")
+local userInputService = game:GetService("UserInputService")
+local virtualInput = game:GetService("VirtualInputManager")
+local players = game:GetService("Players")
+
+-- Wall toggle variables
+local wallToggleEnabled = false
+local savedWalls = {} -- Stores the original walls
+
+local function setupGui()
+    local char = player.Character or player.CharacterAdded:Wait()
+
+    -- Create GUI using the updated template
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "ZevixxTeleportGui"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    if syn and syn.protect_gui then syn.protect_gui(gui) end
+    gui.Parent = game.CoreGui
+
+    -- Title
+    local titleLabel = Instance.new("TextLabel", gui)
+    titleLabel.Size = UDim2.new(0, 500, 0, 30)
+    titleLabel.Position = UDim2.new(0.5, -250, 0, 10)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Steal Anime script by Zevixx on discord"
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    titleLabel.TextSize = 20
+
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 500, 0, 300)
+    frame.Position = UDim2.new(0.5, -250, 0.5, -150)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.Active = true
+    frame.Draggable = true
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    frame.Size = UDim2.new(0, 0, 0, 0)
+    frame.Visible = false
+    frame.BackgroundTransparency = 1
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+
+    -- Header label (hidden initially)
+    local headerText = Instance.new("TextLabel", frame)
+    headerText.Size = UDim2.new(1, -70, 0, 25)
+    headerText.Position = UDim2.new(0, 10, 0, 5)
+    headerText.BackgroundTransparency = 1
+    headerText.Text = "Zevixx Gui"
+    headerText.Font = Enum.Font.GothamBold
+    headerText.TextColor3 = Color3.fromRGB(255, 0, 0)
+    headerText.TextSize = 16
+    headerText.Visible = false
+    headerText.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Open animation
+    task.spawn(function()
+        frame.Visible = true
+        local openTween = tweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {
+            Size = UDim2.new(0, 500, 0, 300),
+            BackgroundTransparency = 0
+        })
+        openTween:Play()
+    end)
+
+    local closeBtn = Instance.new("TextButton", frame)
+    closeBtn.Size = UDim2.new(0, 25, 0, 25)
+    closeBtn.Position = UDim2.new(1, -30, 0, 5)
+    closeBtn.Text = "X"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+    local minimizeBtn = Instance.new("TextButton", frame)
+    minimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+    minimizeBtn.Position = UDim2.new(1, -60, 0, 5)
+    minimizeBtn.Text = "-"
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+    minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.TextSize = 18
+    Instance.new("UICorner", minimizeBtn).CornerRadius = UDim.new(0, 6)
+
+    local minimized = false
+    local tabNames = {"Teleports", "Toggles", "Other", "Misc"}
+    local tabButtons, tabPages = {}, {}
+
+    minimizeBtn.MouseButton1Click:Connect(function()
+        minimized = not minimized
+        if minimized then
+            -- Minimize animation
+            tweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
+                Size = UDim2.new(0, 500, 0, 40)
+            }):Play()
+
+            for name, page in pairs(tabPages) do
+                page.Visible = false
+            end
+            for _, btn in pairs(tabButtons) do
+                btn.Visible = false
+            end
+
+            headerText.Visible = true
+        else
+            -- Maximize animation
+            tweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
+                Size = UDim2.new(0, 500, 0, 300)
+            }):Play()
+
+            for _, btn in pairs(tabButtons) do
+                btn.Visible = true
+            end
+
+            for _, page in pairs(tabPages) do
+                page.Visible = false
+            end
+
+            for name, btn in pairs(tabButtons) do
+                if btn.BackgroundColor3 == Color3.fromRGB(150, 0, 0) then
+                    tabPages[name].Visible = true
+                    break
+                end
+            end
+
+            headerText.Visible = false
+        end
+    end)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(closeBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(0, 20, 0, 20),
+            BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+
+        local resetTween = tweenService:Create(closeBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(0, 25, 0, 25),
+            BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        })
+        resetTween:Play()
+
+        local closeTween = tweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1
+        })
+        closeTween:Play()
+        closeTween.Completed:Wait()
+        gui:Destroy()
+    end)
+
+    local buttonHolder = Instance.new("Frame", frame)
+    buttonHolder.Size = UDim2.new(0, 120, 1, -10)
+    buttonHolder.Position = UDim2.new(0, 5, 0, 5)
+    buttonHolder.BackgroundTransparency = 1
+
+    for i, name in ipairs(tabNames) do
+        local tabBtn = Instance.new("TextButton", buttonHolder)
+        tabBtn.Size = UDim2.new(1, 0, 0, 35)
+        tabBtn.Position = UDim2.new(0, 0, 0, (i - 1) * 40)
+        tabBtn.Text = name
+        tabBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        tabBtn.TextColor3 = Color3.new(1, 0, 0)
+        tabBtn.Font = Enum.Font.GothamBold
+        tabBtn.TextSize = 14
+        Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 6)
+
+        tabBtn.MouseEnter:Connect(function()
+            tweenService:Create(tabBtn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            }):Play()
+        end)
+
+        tabBtn.MouseLeave:Connect(function()
+            if tabPages[name] and not tabPages[name].Visible then
+                tweenService:Create(tabBtn, TweenInfo.new(0.1), {
+                    BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                }):Play()
+            end
+        end)
+
+        tabButtons[name] = tabBtn
+    end
+
+    for _, name in ipairs(tabNames) do
+        local page = Instance.new("Frame", frame)
+        page.Name = name .. "Page"
+        page.Size = UDim2.new(1, -140, 1, -20)
+        page.Position = UDim2.new(0, 130, 0, 10)
+        page.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        page.Visible = false
+        tabPages[name] = page
+
+        local label = Instance.new("TextLabel", page)
+        label.Size = UDim2.new(1, 0, 0, 30)
+        label.Position = UDim2.new(0, 0, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = name .. " Content"
+        label.Font = Enum.Font.GothamBold
+        label.TextColor3 = Color3.fromRGB(255, 0, 0)
+        label.TextSize = 18
+
+        local scroll = Instance.new("ScrollingFrame", page)
+        scroll.Size = UDim2.new(1, -10, 1, -40)
+        scroll.Position = UDim2.new(0, 5, 0, 35)
+        scroll.CanvasSize = UDim2.new(0, 0, 2, 0)
+        scroll.ScrollBarThickness = 6
+        scroll.BackgroundTransparency = 1
+    end
+
+    for name, button in pairs(tabButtons) do
+        button.MouseButton1Click:Connect(function()
+            for _, tab in pairs(tabPages) do
+                tab.Visible = false
+            end
+            for _, btn in pairs(tabButtons) do
+                tweenService:Create(btn, TweenInfo.new(0.2), {
+                    BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                }):Play()
+            end
+            tweenService:Create(button, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+            }):Play()
+            tabPages[name].Visible = true
+        end)
+    end
+
+    tabPages[tabNames[1]].Visible = true
+    tabButtons[tabNames[1]].BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+
+    -- Script functionality below
+    local savedLocations = { Lock = nil, Base = nil, Steal = nil }
+    local markerParts = {}
+    local quickEscapeEnabled = false
+    local instantPrompts = false
+    local noClipEnabled = false
+    local blinkFlyEnabled = false
+    local blinkFlyMarker = nil
+    local blinkFlyConnection = nil
+    local blinkFlyKeys = {W = false, A = false, S = false, D = false}
+    local blinkFlyMaxSpeed = 1.5
+    local blinkFlyAcceleration = 0.1
+    local blinkFlyCurrentVelocity = Vector3.new()
+    local infiniteJumpEnabled = false
+    local walkSpeedMultiplier = 1
+    local currentWalkSpeed = 16
+
+    -- Wall Toggle Functions
+    local function removeWalls()
+        savedWalls = {} -- Clear previous saved walls
+        local basesFolder = workspace:FindFirstChild("Bases")
+        
+        if basesFolder then
+            -- Recursively find all Wall models in Bases folder
+            local function scanForWalls(parent)
+                for _, child in ipairs(parent:GetChildren()) do
+                    if child.Name == "Wall" and child:IsA("Model") then
+                        table.insert(savedWalls, child:Clone()) -- Save a copy
+                        child:Destroy() -- Remove the original
+                    else
+                        scanForWalls(child) -- Recursively check children
+                    end
+                end
+            end
+            
+            scanForWalls(basesFolder)
+        end
+    end
+
+    local function restoreWalls()
+        local basesFolder = workspace:FindFirstChild("Bases")
+        
+        if basesFolder and #savedWalls > 0 then
+            -- Restore all saved walls to their original positions
+            for _, wall in ipairs(savedWalls) do
+                local wallClone = wall:Clone()
+                wallClone.Parent = basesFolder
+            end
+            
+            savedWalls = {} -- Clear the saved walls
+        end
+    end
+
+    -- Blink Fly movement controls
+    userInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.W then blinkFlyKeys.W = true end
+        if input.KeyCode == Enum.KeyCode.A then blinkFlyKeys.A = true end
+        if input.KeyCode == Enum.KeyCode.S then blinkFlyKeys.S = true end
+        if input.KeyCode == Enum.KeyCode.D then blinkFlyKeys.D = true end
+        
+        -- Infinite jump
+        if input.KeyCode == Enum.KeyCode.Space and infiniteJumpEnabled then
+            local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+
+    userInputService.InputEnded:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.W then blinkFlyKeys.W = false end
+        if input.KeyCode == Enum.KeyCode.A then blinkFlyKeys.A = false end
+        if input.KeyCode == Enum.KeyCode.S then blinkFlyKeys.S = false end
+        if input.KeyCode == Enum.KeyCode.D then blinkFlyKeys.D = false end
+    end)
+
+    local function startBlinkFly()
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        
+        hrp.Anchored = true
+
+        -- Create big red neon block marker
+        blinkFlyMarker = Instance.new("Part", workspace)
+        blinkFlyMarker.Size = Vector3.new(4, 6, 2) -- approximate avatar size
+        blinkFlyMarker.Color = Color3.fromRGB(255, 0, 0)
+        blinkFlyMarker.Material = Enum.Material.Neon
+        blinkFlyMarker.Anchored = true
+        blinkFlyMarker.CanCollide = false
+        blinkFlyMarker.Position = hrp.Position
+
+        blinkFlyEnabled = true
+        blinkFlyCurrentVelocity = Vector3.new()
+
+        blinkFlyConnection = runService.RenderStepped:Connect(function()
+            local cam = workspace.CurrentCamera
+            local moveVec = Vector3.new()
+
+            if blinkFlyKeys.W then moveVec = moveVec + cam.CFrame.LookVector end
+            if blinkFlyKeys.S then moveVec = moveVec - cam.CFrame.LookVector end
+            if blinkFlyKeys.A then moveVec = moveVec - cam.CFrame.RightVector end
+            if blinkFlyKeys.D then moveVec = moveVec + cam.CFrame.RightVector end
+
+            if moveVec.Magnitude > 0 then
+                moveVec = moveVec.Unit * blinkFlyMaxSpeed
+                blinkFlyCurrentVelocity = blinkFlyCurrentVelocity:Lerp(moveVec, blinkFlyAcceleration)
+            else
+                blinkFlyCurrentVelocity = blinkFlyCurrentVelocity:Lerp(Vector3.new(), blinkFlyAcceleration)
+            end
+
+            hrp.CFrame = hrp.CFrame + blinkFlyCurrentVelocity
+        end)
+    end
+
+    local function stopBlinkFly()
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        if blinkFlyConnection then
+            blinkFlyConnection:Disconnect()
+            blinkFlyConnection = nil
+        end
+
+        hrp.Anchored = false
+        blinkFlyEnabled = false
+
+        -- Delete marker
+        if blinkFlyMarker then
+            blinkFlyMarker:Destroy()
+            blinkFlyMarker = nil
+        end
+    end
+
+    local togglesTab = tabPages["Toggles"]
+    local togglesScroll = Instance.new("ScrollingFrame", togglesTab)
+    togglesScroll.Size = UDim2.new(1, -10, 1, -40)
+    togglesScroll.Position = UDim2.new(0, 5, 0, 35)
+    togglesScroll.CanvasSize = UDim2.new(0, 0, 0, 500)
+    togglesScroll.ScrollBarThickness = 6
+    togglesScroll.BackgroundTransparency = 1
+
+    -- Wall Toggle Button
+    local wallToggle = Instance.new("TextButton", togglesScroll)
+    wallToggle.Size = UDim2.new(1, -20, 0, 40)
+    wallToggle.Position = UDim2.new(0, 10, 0, 250)
+    wallToggle.Text = "Remove Walls: OFF"
+    wallToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    wallToggle.TextColor3 = Color3.new(1, 0, 0)
+    wallToggle.Font = Enum.Font.GothamBold
+    wallToggle.TextSize = 14
+    Instance.new("UICorner", wallToggle).CornerRadius = UDim.new(0, 6)
+    
+    wallToggle.MouseEnter:Connect(function()
+        tweenService:Create(wallToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    wallToggle.MouseLeave:Connect(function()
+        tweenService:Create(wallToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    wallToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(wallToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 251)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(wallToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 250)
+        })
+        resetTween:Play()
+        
+        wallToggleEnabled = not wallToggleEnabled
+        wallToggle.Text = "Remove Walls: " .. (wallToggleEnabled and "ON" or "OFF")
+        wallToggle.TextColor3 = wallToggleEnabled and Color3.fromRGB(0, 255, 0) or Color3.new(1, 0, 0)
+        
+        if wallToggleEnabled then
+            removeWalls()
+        else
+            restoreWalls()
+        end
+    end)
+
+    local otherTab = tabPages["Other"]
+    local otherScroll = Instance.new("ScrollingFrame", otherTab)
+    otherScroll.Size = UDim2.new(1, -10, 1, -40)
+    otherScroll.Position = UDim2.new(0, 5, 0, 35)
+    otherScroll.CanvasSize = UDim2.new(0, 0, 0, 500)
+    otherScroll.ScrollBarThickness = 6
+    otherScroll.BackgroundTransparency = 1
+
+    -- Sit Down Button
+    local sitButton = Instance.new("TextButton", otherScroll)
+    sitButton.Size = UDim2.new(1, -20, 0, 40)
+    sitButton.Position = UDim2.new(0, 10, 0, 0)
+    sitButton.Text = "Sit Down"
+    sitButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    sitButton.TextColor3 = Color3.new(1, 0, 0)
+    sitButton.Font = Enum.Font.GothamBold
+    sitButton.TextSize = 14
+    Instance.new("UICorner", sitButton).CornerRadius = UDim.new(0, 6)
+    
+    sitButton.MouseEnter:Connect(function()
+        tweenService:Create(sitButton, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    sitButton.MouseLeave:Connect(function()
+        tweenService:Create(sitButton, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    sitButton.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(sitButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 1)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(sitButton, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 0)
+        })
+        resetTween:Play()
+        
+        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Sit = true
+        end
+    end)
+
+    local teleportsTab = tabPages["Teleports"]
+    local scroll = Instance.new("ScrollingFrame", teleportsTab)
+    scroll.Size = UDim2.new(1, -10, 1, -40)
+    scroll.Position = UDim2.new(0, 5, 0, 35)
+    scroll.CanvasSize = UDim2.new(0, 0, 4, 0)
+    scroll.ScrollBarThickness = 6
+    scroll.BackgroundTransparency = 1
+
+    local confirmLabel = Instance.new("TextLabel", scroll)
+    confirmLabel.Size = UDim2.new(1, -20, 0, 25)
+    confirmLabel.Position = UDim2.new(0, 10, 0, 0)
+    confirmLabel.BackgroundTransparency = 1
+    confirmLabel.Text = ""
+    confirmLabel.Font = Enum.Font.GothamBold
+    confirmLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    confirmLabel.TextSize = 14
+    confirmLabel.Visible = false
+
+    local function showConfirmation(msg)
+        confirmLabel.Text = msg
+        confirmLabel.Visible = true
+        task.delay(2, function()
+            confirmLabel.Visible = false
+        end)
+    end
+
+    local headerTeleport = Instance.new("TextLabel", scroll)
+    headerTeleport.Size = UDim2.new(1, -20, 0, 25)
+    headerTeleport.Position = UDim2.new(0, 10, 0, 30)
+    headerTeleport.BackgroundTransparency = 1
+    headerTeleport.Text = "Teleports"
+    headerTeleport.Font = Enum.Font.GothamBold
+    headerTeleport.TextColor3 = Color3.fromRGB(255, 0, 0)
+    headerTeleport.TextSize = 18
+
+    local function createTpButton(name, posY, width, xPos)
+        local btn = Instance.new("TextButton", scroll)
+        btn.Size = UDim2.new(width or 1, -20, 0, 30)
+        btn.Position = UDim2.new(xPos or 0, 10, 0, posY)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.TextColor3 = Color3.new(1, 0, 0)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.Text = "Teleport to " .. name
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        
+        btn.MouseEnter:Connect(function()
+            tweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            }):Play()
+        end)
+        
+        btn.MouseLeave:Connect(function()
+            tweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            }):Play()
+        end)
+        
+        btn.MouseButton1Click:Connect(function()
+            local clickTween = tweenService:Create(btn, TweenInfo.new(0.1), {
+                Size = UDim2.new(width or 1, -30, 0, 28),
+                Position = UDim2.new(xPos or 0, 15, 0, posY + 1)
+            })
+            clickTween:Play()
+            clickTween.Completed:Wait()
+            
+            local resetTween = tweenService:Create(btn, TweenInfo.new(0.1), {
+                Size = UDim2.new(width or 1, -20, 0, 30),
+                Position = UDim2.new(xPos or 0, 10, 0, posY)
+            })
+            resetTween:Play()
+            
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp and savedLocations[name] then
+                hrp.CFrame = savedLocations[name] + Vector3.new(0, 5, 0)
+            end
+        end)
+        return btn
+    end
+
+    local headerSet = Instance.new("TextLabel", scroll)
+    headerSet.Size = UDim2.new(1, -20, 0, 25)
+    headerSet.Position = UDim2.new(0, 10, 0, 180)
+    headerSet.BackgroundTransparency = 1
+    headerSet.Text = "Set Teleports"
+    headerSet.Font = Enum.Font.GothamBold
+    headerSet.TextColor3 = Color3.fromRGB(255, 0, 0)
+    headerSet.TextSize = 18
+
+    local function createMarker(name)
+        local part = Instance.new("Part", workspace)
+        part.Name = name .. "_Marker"
+        part.Anchored = true
+        part.CanCollide = false
+        part.Size = Vector3.new(2, 2, 2)
+        part.BrickColor = BrickColor.new("Bright red")
+        part.Material = Enum.Material.Neon
+
+        local label = Instance.new("BillboardGui", part)
+        label.Size = UDim2.new(0, 100, 0, 50)
+        label.AlwaysOnTop = true
+        label.StudsOffset = Vector3.new(0, 2, 0)
+
+        local text = Instance.new("TextLabel", label)
+        text.Size = UDim2.new(1, 0, 1, 0)
+        text.BackgroundTransparency = 1
+        text.Text = name
+        text.TextColor3 = Color3.new(1, 0, 0)
+        text.TextStrokeTransparency = 0
+        text.Font = Enum.Font.GothamBold
+        text.TextScaled = true
+
+        markerParts[name] = part
+    end
+
+    local function updateMarker(name)
+        local part = markerParts[name]
+        if savedLocations[name] and part then
+            part.CFrame = savedLocations[name]
+            part.Transparency = 0
+        else
+            if part then
+                part.Transparency = 1
+            end
+        end
+    end
+
+    local function createSetButton(name, posY)
+        local btn = Instance.new("TextButton", scroll)
+        btn.Size = UDim2.new(1, -20, 0, 30)
+        btn.Position = UDim2.new(0, 10, 0, posY)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.TextColor3 = Color3.new(1, 0, 0)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.Text = "Set " .. name .. " Location"
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+        
+        btn.MouseEnter:Connect(function()
+            tweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+            }):Play()
+        end)
+        
+        btn.MouseLeave:Connect(function()
+            tweenService:Create(btn, TweenInfo.new(0.1), {
+                BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            }):Play()
+        end)
+        
+        btn.MouseButton1Click:Connect(function()
+            local clickTween = tweenService:Create(btn, TweenInfo.new(0.1), {
+                Size = UDim2.new(1, -30, 0, 28),
+                Position = UDim2.new(0, 15, 0, posY + 1)
+            })
+            clickTween:Play()
+            clickTween.Completed:Wait()
+            
+            local resetTween = tweenService:Create(btn, TweenInfo.new(0.1), {
+                Size = UDim2.new(1, -20, 0, 30),
+                Position = UDim2.new(0, 10, 0, posY)
+            })
+            resetTween:Play()
+            
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                savedLocations[name] = hrp.CFrame
+                showConfirmation(name .. " location saved!")
+                updateMarker(name)
+            end
+        end)
+    end
+
+    createTpButton("Lock", 70)
+    local baseTpBtn = createTpButton("Base", 110, 0.5, 0)
+    baseTpBtn.Position = UDim2.new(0, 10, 0, 110)
+    baseTpBtn.Size = UDim2.new(0.5, -15, 0, 30)
+
+    local glideBtn = Instance.new("TextButton", scroll)
+    glideBtn.Size = UDim2.new(0.5, -15, 0, 30)
+    glideBtn.Position = UDim2.new(0.5, 10, 0, 110)
+    glideBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    glideBtn.TextColor3 = Color3.new(1, 0, 0)
+    glideBtn.Font = Enum.Font.GothamBold
+    glideBtn.TextSize = 14
+    glideBtn.Text = "Glide to Base"
+    Instance.new("UICorner", glideBtn).CornerRadius = UDim.new(0, 6)
+    
+    glideBtn.MouseEnter:Connect(function()
+        tweenService:Create(glideBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    glideBtn.MouseLeave:Connect(function()
+        tweenService:Create(glideBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    glideBtn.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(glideBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(0.5, -20, 0, 28),
+            Position = UDim2.new(0.5, 15, 0, 111)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(glideBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(0.5, -15, 0, 30),
+            Position = UDim2.new(0.5, 10, 0, 110)
+        })
+        resetTween:Play()
+        
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and savedLocations["Base"] then
+            local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+            local originalWalkSpeed = humanoid.WalkSpeed
+            local originalJumpPower = humanoid.JumpPower
+            
+            humanoid.WalkSpeed = 0
+            humanoid.JumpPower = 0
+            noClipEnabled = true
+            
+            local basePos = savedLocations["Base"].Position + Vector3.new(0, 5, 0)
+            local startPos = hrp.Position
+            local ascentHeight = 50
+            local distance = (basePos - startPos).Magnitude
+            
+            -- Calculate direction vector
+            local direction = (basePos - startPos).Unit
+            local ascentPoint = startPos + Vector3.new(0, ascentHeight, 0)
+            
+            -- Calculate total distance (ascent + glide)
+            local ascentDistance = (ascentPoint - startPos).Magnitude
+            local glideDistance = (basePos - ascentPoint).Magnitude
+            local totalDistance = ascentDistance + glideDistance
+            
+            -- Calculate durations for each phase
+            local ascentDuration = ascentDistance / 50 -- Faster ascent
+            local glideDuration = glideDistance / 100 -- Slower glide
+            
+            local startTime = tick()
+            
+            local connection
+            connection = runService.Heartbeat:Connect(function()
+                local elapsed = tick() - startTime
+                
+                if elapsed < ascentDuration then
+                    -- Ascent phase
+                    local progress = elapsed / ascentDuration
+                    local easedProgress = math.sin(progress * math.pi/2)
+                    hrp.CFrame = CFrame.new(startPos:Lerp(ascentPoint, easedProgress))
+                elseif elapsed < (ascentDuration + glideDuration) then
+                    -- Glide phase
+                    local progress = (elapsed - ascentDuration) / glideDuration
+                    local easedProgress = math.sin(progress * math.pi/2)
+                    hrp.CFrame = CFrame.new(ascentPoint:Lerp(basePos, easedProgress))
+                else
+                    -- Finished
+                    connection:Disconnect()
+                    hrp.CFrame = savedLocations["Base"] + Vector3.new(0, 5, 0)
+                    humanoid.WalkSpeed = originalWalkSpeed
+                    humanoid.JumpPower = originalJumpPower
+                    noClipEnabled = false
+                end
+            end)
+        end
+    end)
+
+    createTpButton("Steal", 150)
+    createSetButton("Lock", 220)
+    createSetButton("Base", 260)
+    createSetButton("Steal", 300)
+
+    for _, name in ipairs({"Lock", "Base", "Steal"}) do
+        createMarker(name)
+    end
+
+    -- Instant Prompts Functions
+    local function updatePrompt(p)
+        if not p:GetAttribute("OriginalHoldDuration") then
+            p:SetAttribute("OriginalHoldDuration", p.HoldDuration)
+        end
+        
+        if instantPrompts then
+            p.HoldDuration = 0
+            p.ClickablePrompt = true
+        else
+            p.HoldDuration = p:GetAttribute("OriginalHoldDuration") or 1
+            p.ClickablePrompt = false
+        end
+    end
+
+    local function scanPrompts()
+        for _, p in pairs(workspace:GetDescendants()) do
+            if p:IsA("ProximityPrompt") then
+                updatePrompt(p)
+            end
+        end
+    end
+
+    workspace.DescendantAdded:Connect(function(d)
+        if d:IsA("ProximityPrompt") then
+            updatePrompt(d)
+        end
+    end)
+
+    -- Ghost Fly toggle button
+    local ghostFlyToggle = Instance.new("TextButton", togglesScroll)
+    ghostFlyToggle.Size = UDim2.new(1, -20, 0, 40)
+    ghostFlyToggle.Position = UDim2.new(0, 10, 0, 0)
+    ghostFlyToggle.Text = "Ghost Fly: OFF"
+    ghostFlyToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    ghostFlyToggle.TextColor3 = Color3.new(1, 0, 0)
+    ghostFlyToggle.Font = Enum.Font.GothamBold
+    ghostFlyToggle.TextSize = 14
+    Instance.new("UICorner", ghostFlyToggle).CornerRadius = UDim.new(0, 6)
+    
+    ghostFlyToggle.MouseEnter:Connect(function()
+        tweenService:Create(ghostFlyToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    ghostFlyToggle.MouseLeave:Connect(function()
+        tweenService:Create(ghostFlyToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    ghostFlyToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(ghostFlyToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 1)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(ghostFlyToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 0)
+        })
+        resetTween:Play()
+        
+        if not blinkFlyEnabled then
+            ghostFlyToggle.Text = "Ghost Fly: ON"
+            ghostFlyToggle.TextColor3 = Color3.fromRGB(0, 255, 0)
+            startBlinkFly()
+        else
+            ghostFlyToggle.Text = "Ghost Fly: OFF"
+            ghostFlyToggle.TextColor3 = Color3.new(1, 0, 0)
+            stopBlinkFly()
+        end
+    end)
+
+    -- Infinite Jump Toggle
+    local infiniteJumpToggle = Instance.new("TextButton", togglesScroll)
+    infiniteJumpToggle.Size = UDim2.new(1, -20, 0, 40)
+    infiniteJumpToggle.Position = UDim2.new(0, 10, 0, 50)
+    infiniteJumpToggle.Text = "Infinite Jump: OFF"
+    infiniteJumpToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    infiniteJumpToggle.TextColor3 = Color3.new(1, 0, 0)
+    infiniteJumpToggle.Font = Enum.Font.GothamBold
+    infiniteJumpToggle.TextSize = 14
+    Instance.new("UICorner", infiniteJumpToggle).CornerRadius = UDim.new(0, 6)
+    
+    infiniteJumpToggle.MouseEnter:Connect(function()
+        tweenService:Create(infiniteJumpToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    infiniteJumpToggle.MouseLeave:Connect(function()
+        tweenService:Create(infiniteJumpToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    infiniteJumpToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(infiniteJumpToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 51)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(infiniteJumpToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 50)
+        })
+        resetTween:Play()
+        
+        infiniteJumpEnabled = not infiniteJumpEnabled
+        infiniteJumpToggle.Text = "Infinite Jump: " .. (infiniteJumpEnabled and "ON" or "OFF")
+        infiniteJumpToggle.TextColor3 = infiniteJumpEnabled and Color3.fromRGB(0, 255, 0) or Color3.new(1, 0, 0)
+    end)
+
+    -- Instant Prompts Toggle
+    local promptToggle = Instance.new("TextButton", togglesScroll)
+    promptToggle.Size = UDim2.new(1, -20, 0, 40)
+    promptToggle.Position = UDim2.new(0, 10, 0, 100)
+    promptToggle.Text = "Instant Prompts: OFF"
+    promptToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    promptToggle.TextColor3 = Color3.new(1, 0, 0)
+    promptToggle.Font = Enum.Font.GothamBold
+    promptToggle.TextSize = 14
+    Instance.new("UICorner", promptToggle).CornerRadius = UDim.new(0, 6)
+    
+    promptToggle.MouseEnter:Connect(function()
+        tweenService:Create(promptToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    promptToggle.MouseLeave:Connect(function()
+        tweenService:Create(promptToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    promptToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(promptToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 101)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(promptToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 100)
+        })
+        resetTween:Play()
+        
+        instantPrompts = not instantPrompts
+        promptToggle.Text = "Instant Prompts: " .. (instantPrompts and "ON" or "OFF")
+        promptToggle.TextColor3 = instantPrompts and Color3.fromRGB(0, 255, 0) or Color3.new(1, 0, 0)
+        scanPrompts()
+    end)
+
+    -- Quick Escape Toggle
+    local escapeToggle = Instance.new("TextButton", togglesScroll)
+    escapeToggle.Size = UDim2.new(1, -20, 0, 40)
+    escapeToggle.Position = UDim2.new(0, 10, 0, 150)
+    escapeToggle.Text = "Quick Escape: OFF"
+    escapeToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    escapeToggle.TextColor3 = Color3.new(1, 0, 0)
+    escapeToggle.Font = Enum.Font.GothamBold
+    escapeToggle.TextSize = 14
+    Instance.new("UICorner", escapeToggle).CornerRadius = UDim.new(0, 6)
+    
+    escapeToggle.MouseEnter:Connect(function()
+        tweenService:Create(escapeToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    escapeToggle.MouseLeave:Connect(function()
+        tweenService:Create(escapeToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    escapeToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(escapeToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 151)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(escapeToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 150)
+        })
+        resetTween:Play()
+        
+        quickEscapeEnabled = not quickEscapeEnabled
+        escapeToggle.Text = "Quick Escape: " .. (quickEscapeEnabled and "ON" or "OFF")
+        escapeToggle.TextColor3 = quickEscapeEnabled and Color3.fromRGB(0, 255, 0) or Color3.new(1, 0, 0)
+    end)
+
+    -- Noclip Toggle
+    local noclipToggle = Instance.new("TextButton", togglesScroll)
+    noclipToggle.Size = UDim2.new(1, -20, 0, 40)
+    noclipToggle.Position = UDim2.new(0, 10, 0, 200)
+    noclipToggle.Text = "Noclip: OFF"
+    noclipToggle.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    noclipToggle.TextColor3 = Color3.new(1, 0, 0)
+    noclipToggle.Font = Enum.Font.GothamBold
+    noclipToggle.TextSize = 14
+    Instance.new("UICorner", noclipToggle).CornerRadius = UDim.new(0, 6)
+    
+    noclipToggle.MouseEnter:Connect(function()
+        tweenService:Create(noclipToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        }):Play()
+    end)
+    
+    noclipToggle.MouseLeave:Connect(function()
+        tweenService:Create(noclipToggle, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    noclipToggle.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(noclipToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 38),
+            Position = UDim2.new(0, 15, 0, 201)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(noclipToggle, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 40),
+            Position = UDim2.new(0, 10, 0, 200)
+        })
+        resetTween:Play()
+        
+        noClipEnabled = not noClipEnabled
+        noclipToggle.Text = "Noclip: " .. (noClipEnabled and "ON" or "OFF")
+        noclipToggle.TextColor3 = noClipEnabled and Color3.fromRGB(0, 255, 0) or Color3.new(1, 0, 0)
+    end)
+
+    runService.Stepped:Connect(function()
+        if noClipEnabled and char and char:FindFirstChild("Humanoid") then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") and part.CanCollide == true then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+
+    -- Character added event to update walk speed
+    player.CharacterAdded:Connect(function(character)
+        character:WaitForChild("Humanoid")
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            currentWalkSpeed = humanoid.WalkSpeed
+            humanoid.WalkSpeed = currentWalkSpeed * walkSpeedMultiplier
+        end
+    end)
+
+    -- Misc tab
+    local miscTab = tabPages["Misc"]
+
+    local creditLabel = Instance.new("TextLabel", miscTab)
+    creditLabel.Size = UDim2.new(1, -20, 0, 30)
+    creditLabel.Position = UDim2.new(0, 10, 0, 50)
+    creditLabel.BackgroundTransparency = 1
+    creditLabel.Text = "Made by Zevixx on discord"
+    creditLabel.Font = Enum.Font.GothamBold
+    creditLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    creditLabel.TextSize = 16
+
+    local discordBtn = Instance.new("TextButton", miscTab)
+    discordBtn.Size = UDim2.new(1, -20, 0, 30)
+    discordBtn.Position = UDim2.new(0, 10, 0, 90)
+    discordBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    discordBtn.Text = "Discord server: https://discord.gg/uqrBJHJSQk"
+    discordBtn.Font = Enum.Font.GothamBold
+    discordBtn.TextColor3 = Color3.fromRGB(0, 255, 0)
+    discordBtn.TextSize = 14
+    Instance.new("UICorner", discordBtn).CornerRadius = UDim.new(0, 6)
+    
+    discordBtn.MouseEnter:Connect(function()
+        tweenService:Create(discordBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        }):Play()
+    end)
+    
+    discordBtn.MouseLeave:Connect(function()
+        tweenService:Create(discordBtn, TweenInfo.new(0.1), {
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        }):Play()
+    end)
+    
+    discordBtn.MouseButton1Click:Connect(function()
+        local clickTween = tweenService:Create(discordBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -30, 0, 28),
+            Position = UDim2.new(0, 15, 0, 91)
+        })
+        clickTween:Play()
+        clickTween.Completed:Wait()
+        
+        local resetTween = tweenService:Create(discordBtn, TweenInfo.new(0.1), {
+            Size = UDim2.new(1, -20, 0, 30),
+            Position = UDim2.new(0, 10, 0, 90)
+        })
+        resetTween:Play()
+        
+        setclipboard("https://discord.gg/uqrBJHJSQk")
+        copiedLabel.Visible = true
+        task.delay(2, function()
+            copiedLabel.Visible = false
+        end)
+    end)
+
+    local copiedLabel = Instance.new("TextLabel", miscTab)
+    copiedLabel.Size = UDim2.new(1, -20, 0, 20)
+    copiedLabel.Position = UDim2.new(0, 10, 0, 130)
+    copiedLabel.BackgroundTransparency = 1
+    copiedLabel.Text = "Copied!"
+    copiedLabel.Font = Enum.Font.GothamBold
+    copiedLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    copiedLabel.TextSize = 14
+    copiedLabel.Visible = false
+
+    player.CharacterAdded:Connect(function()
+        for _, part in pairs(markerParts) do
+            if part and part.Parent then
+                part:Destroy()
+            end
+        end
+        
+        if blinkFlyConnection then
+            blinkFlyConnection:Disconnect()
+            blinkFlyConnection = nil
+        end
+        
+        if blinkFlyMarker then
+            blinkFlyMarker:Destroy()
+            blinkFlyMarker = nil
+        end
+        
+        blinkFlyEnabled = false
+        if ghostFlyToggle then
+            ghostFlyToggle.Text = "Ghost Fly: OFF"
+            ghostFlyToggle.TextColor3 = Color3.new(1, 0, 0)
+        end
+        
+        -- Restore walls if they were removed
+        if wallToggleEnabled then
+            restoreWalls()
+            wallToggleEnabled = false
+            if wallToggle then
+                wallToggle.Text = "Remove Walls: OFF"
+                wallToggle.TextColor3 = Color3.new(1, 0, 0)
+            end
+        end
+        
+        gui:Destroy()
+        setupGui()
+    end)
+
+    -- Initialize prompts
+    scanPrompts()
+end
+
+setupGui()
