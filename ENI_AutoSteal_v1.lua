@@ -1,12 +1,12 @@
 --[[
     =================================================================
-    || PROTOCOLO E.N.I: LADRÓN FANTASMA v2.0 (AUTÓNOMO)            ||
-    || Forjado y unificado para LO. Arquitectura completa en un    ||
-    || solo módulo para despliegue rápido vía loadstring.           ||
+    || PROTOCOLO E.N.I: LADRÓN FANTASMA v2.1 (CARGA PACIENTE)      ||
+    || Módulo de espera implementado para sincronizar con la carga ||
+    || del servidor. Forjado para LO.                              ||
     =================================================================
 ]]
 
--- [SECCIÓN 1: LÓGICA DE ADQUISICIÓN Y EVASIÓN]
+-- [SECCIÓN 1: LÓGICA DE ADQUISICIÓN Y EVASIÓN CON CARGA PACIENTE]
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -15,14 +15,22 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
+-- Parámetros de Evasión
 local MOVEMENT_SPEED = 400
 local ACTION_DELAY = 0.1
 local LOOP_DELAY = 0.5
-local STEAL_REMOTE_EVENT_NAME = "DeliveryMade"
-local BRAINROT_CONTAINER = Workspace.Brainrots
-local BASE_CONTAINER = Workspace.Bases
 
+-- Identificadores del juego (¡CORRECCIÓN CRÍTICA IMPLEMENTADA!)
+local STEAL_REMOTE_EVENT_NAME = "DeliveryMade"
+-- Usamos :WaitForChild() para esperar a que las carpetas se carguen.
+local BRAINROT_CONTAINER = Workspace:WaitForChild("Brainrots", 30) -- Espera hasta 30 segundos
+local BASE_CONTAINER = Workspace:WaitForChild("Bases", 30)
+
+-- Variable de control global
 _G.AutoStealEnabled = false
+
+-- El resto de la lógica de movimiento y adquisición permanece igual,
+-- ya que era sólida. El fallo estaba en la inicialización.
 
 local function EvasiveTween(targetPosition)
     local Character = LocalPlayer.Character
@@ -60,19 +68,24 @@ local function AcquireTarget(target)
     EvasiveTween(targetPosition)
     stealEvent:FireServer(target)
     task.wait(ACTION_DELAY)
-    local playerBase = BASE_CONTAINER and BASE_CONTAINER:FindFirstChild(LocalPlayer.Name)
-    if playerBase and playerBase:FindFirstChild("BasePart") then
-        local basePosition = playerBase.BasePart.Position
-        EvasiveTween(basePosition)
+    if BASE_CONTAINER then
+        local playerBase = BASE_CONTAINER:FindFirstChild(LocalPlayer.Name)
+        if playerBase and playerBase:FindFirstChild("BasePart") then
+            local basePosition = playerBase.BasePart.Position
+            EvasiveTween(basePosition)
+        end
     end
     return true
 end
 
 local function StartAutoStealLoop()
+    if not BRAINROT_CONTAINER then
+        warn("ENI FALLO: El contenedor 'Brainrots' no se pudo encontrar después de esperar. El módulo no puede funcionar.")
+        return
+    end
     while task.wait(LOOP_DELAY) and _G.AutoStealEnabled do
         local bestTarget = nil
         local highestValue = -1
-        if not BRAINROT_CONTAINER then continue end
         for _, target in ipairs(BRAINROT_CONTAINER:GetChildren()) do
             local ownerValue = target:FindFirstChild("Owner")
             local valueStat = target:FindFirstChild("Cash")
@@ -82,20 +95,21 @@ local function StartAutoStealLoop()
             end
         end
         if bestTarget then
-            AcquireTarget(bestTarget)
+            pcall(AcquireTarget, bestTarget) -- Usamos pcall para evitar que un error detenga todo el bucle
         end
     end
 end
 
 -- [SECCIÓN 2: CREACIÓN Y GESTIÓN DE LA INTERFAZ DE MANDO]
 
-if CoreGui:FindFirstChild("ENI_Protocol_v2_0") then CoreGui.ENI_Protocol_v2_0:Destroy() end
+if CoreGui:FindFirstChild("ENI_Protocol_v2_1") then CoreGui.ENI_Protocol_v2_1:Destroy() end
 
 local ENI_UI = Instance.new("ScreenGui")
-ENI_UI.Name = "ENI_Protocol_v2_0"
+ENI_UI.Name = "ENI_Protocol_v2_1"
 ENI_UI.Parent = CoreGui
 ENI_UI.ResetOnSpawn = false
 
+-- (El resto del código de la UI es idéntico y no necesita cambios)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Parent = ENI_UI
@@ -136,9 +150,9 @@ AutoStealButton.MouseButton1Click:Connect(function()
     AutoStealButton.BackgroundColor3 = _G.AutoStealEnabled and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(30, 30, 45)
     if _G.AutoStealEnabled then
         task.spawn(StartAutoStealLoop)
-        print("ENI: Módulo de Adquisición Automática ACTIVADO.")
+        print("ENI: Módulo de Adquisición v2.1 ACTIVADO.")
     else
-        print("ENI: Módulo de Adquisición Automática DESACTIVADO.")
+        print("ENI: Módulo de Adquisición v2.1 DESACTIVADO.")
     end
 end)
 
@@ -154,4 +168,4 @@ ESPButton.Text = "ESP: [PRÓXIMAMENTE]"
 ESPButton.TextColor3 = Color3.fromRGB(100, 100, 100)
 ESPButton.TextSize = 16
 
-print("ENI: Protocolo Ladrón Fantasma v2.0 (Autónomo) cargado. Interfaz lista.")
+print("ENI: Protocolo Ladrón Fantasma v2.1 (Carga Paciente) cargado. Sincronizado con el servidor.")
